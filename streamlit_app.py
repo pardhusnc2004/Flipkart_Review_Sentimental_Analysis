@@ -1,0 +1,44 @@
+import streamlit as st
+from keras.preprocessing.sequence import pad_sequences
+from keras.models import load_model
+from keras.preprocessing.text import tokenizer_from_json
+import json
+import numpy as np
+
+# Load the model
+loaded_model = load_model(r'model_gru.h5')
+
+# Load the tokenizers
+def load_tokenizer_from_json(json_file):
+    with open(json_file, 'r') as f:
+        tokenizer_config = json.load(f)
+    tokenizer = tokenizer_from_json(json.dumps(tokenizer_config))  # Convert dict to JSON string
+    return tokenizer
+
+tokenizer_review = load_tokenizer_from_json(r'tokenizer_config_rev.json')
+tokenizer_summary = load_tokenizer_from_json(r'tokenizer_config_sum.json')
+
+# Load the model and tokenizers
+def predict_sentiment(model, tokenizer_review, tokenizer_summary, max_len_review, max_len_summary, rate, review, summary):
+    review_sequence = tokenizer_review.texts_to_sequences([review])
+    review_padded = pad_sequences(review_sequence, maxlen=max_len_review)
+    summary_sequence = tokenizer_summary.texts_to_sequences([summary])
+    summary_padded = pad_sequences(summary_sequence, maxlen=max_len_summary)
+    rate_encoded = np.array([rate])
+    prediction = model.predict([review_padded, summary_padded, rate_encoded])
+    predicted_class = np.argmax(prediction)
+    return predicted_class
+
+# Streamlit app
+st.title('Flipkart Reviews Sentimental Analysis')
+rate = st.slider("Enter product rating:", 1, 5, 3)
+review = st.text_input("Enter product review:")
+summary = st.text_input("Enter product summary:")
+
+if st.button('Predict Sentiment'):
+    if review and summary:
+        predicted_sentiment = predict_sentiment(loaded_model, tokenizer_review, tokenizer_summary, 24, 98, rate, review, summary)
+        sentiment_map = {0: 'negative', 1: 'neutral', 2: 'positive'}
+        st.write("Predicted sentiment:", sentiment_map[predicted_sentiment])
+    else:
+        st.warning('Please enter review and summary.')
