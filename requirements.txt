@@ -1,2 +1,4 @@
 tensorflow==2.13.0
 keras==2.13.1
+streamlit==1.32.2
+pillow==9.2.0
